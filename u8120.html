@@ -1,0 +1,331 @@
+<html>
+
+<head>
+    <title>SandBlast - file testing page</title>
+</head>
+
+<body>
+    <form>
+        <input type="file" id="files" name="files" multiple="false"/>
+    </form>
+
+
+    <table style="visibility:hidden" id="file_table">
+        <tr><td>File name</td><td id="val_file_name"></td></tr>
+        <tr><td>File type</td><td id="val_file_type"></td></tr>
+        <tr><td>File MIME</td><td id="val_file_mime"></td></tr>
+        <tr><td>File size</td><td id="val_file_size"></td></tr>
+        <tr><td>Last modified</td><td id="val_file_last_modified"></td></tr>
+    </table>
+
+    <table style="visibility:hidden" id="status_table">
+        <tr><td>Status code</td><td id="val_status_code"></td></tr>
+        <tr><td>Status Label</td><td id="val_status_label"></td></tr>
+        <tr><td>Message</td><td id="val_status_message"></td></tr>
+    </table>
+
+    <table style="visibility:hidden" id="verdict_table">
+            <tr><td>Verdict</td><td id="val_verdict"></td></tr>
+            <tr><td>Confidence</td><td id="val_confidence"></td></tr>
+            <tr><td>Severity</td><td id="val_severity"></td></tr>
+    </table>
+
+    <div id="progress_indicator"></div>
+
+    <table style="visibility:hidden" id="reports_table">
+    </table>
+
+    <a style="visibility:hidden" id="more_link">Test another file</a>
+
+    <script>
+        console.log("ready.");
+        // used as TE API key
+        api_key = "8SD5xJZTfHlEuALbV9fpLB9lJC9zapkH"
+
+        window.tpapi = {
+            key: "",
+            sender_string: "SimpleUploadPage"
+        }
+
+        document.getElementById("more_link").setAttribute("href", window.location.href);
+
+
+        function startProgressIndicator() {
+            var progressIndicatorText="|/-\\";
+            var progressIndicatorState=0;
+            document.getElementById("progress_indicator").dataset.updater=setInterval(function() {
+                progressIndicatorState=(progressIndicatorState+1)%progressIndicatorText.length;
+                document.getElementById("progress_indicator").innerHTML=progressIndicatorText[progressIndicatorState];
+            }, 1000 );
+        }
+
+        function stopProgressIndicator() {
+            var pInd = document.getElementById("progress_indicator");
+            setElementVisibility(pInd, false);
+            clearInterval(pInd.dataset.updater);
+            console.log(pInd.dataset.updater);
+        }
+
+        function reportURL(downloadID)
+        {
+            return "https://192.168.101.3:18194/tecloud/api/v1/file/download?id=" + downloadID;
+        }
+
+        function setReportsTable(imagesStruct)
+        {
+            var reportsTable = document.getElementById("reports_table");
+            setElementVisibility(reportsTable, true);
+            reportsTable.innerHTML = "<tr><th>image</th><th>decider</th><th>xml report</th><th>full report</th></tr>\n"
+            for (var i in imagesStruct) {
+                console.log(imagesStruct[i]);
+                console.log(imagesStruct[i].id);
+                console.log(imagesStruct[i].report.xml_report);
+                console.log(imagesStruct[i].report.additional_emulation_data.verdict_decider);
+                reportsTable.innerHTML +=
+                    "<tr>"
+                    +"<td>"+imagesStruct[i].id+"</td>"
+                    +"<td>"+imagesStruct[i].report.additional_emulation_data.verdict_decider+"</td>"
+                    +"<td><a href=\""+reportURL(imagesStruct[i].report.xml_report)+"\">"+imagesStruct[i].report.xml_report+"</a></td>"
+                    +"<td><a href=\""+reportURL(imagesStruct[i].report.full_report)+"\">"+imagesStruct[i].report.full_report+"</a></td>"
+                    +"</tr>\n";
+                console.log(window.location.href);
+            }
+            //document.getElementById("val_verdict").innerHTML = teVerdict.combined_verdict;
+            //document.getElementById("val_confidence").innerHTML = teVerdict.confidence;
+            //document.getElementById("val_severity").innerHTML = teVerdict.severity;
+        }
+
+        function setVerdictTable(teVerdict)
+        {
+            setElementVisibility(document.getElementById("verdict_table"), true);
+            document.getElementById("val_verdict").innerHTML = teVerdict.combined_verdict;
+            document.getElementById("val_confidence").innerHTML = teVerdict.confidence;
+            document.getElementById("val_severity").innerHTML = teVerdict.severity;
+        }
+
+        function setStatusTable(status)
+        {
+            setElementVisibility(document.getElementById("status_table"), true);
+            document.getElementById("val_status_code").innerHTML = status.code;
+            document.getElementById("val_status_label").innerHTML = status.label;
+            document.getElementById("val_status_message").innerHTML = status.message;
+        }
+
+        function setFileDetailsTable(fileInfo)
+        {
+            setElementVisibility(document.getElementById("file_table"), true);
+            document.getElementById("val_file_name").innerHTML = fileInfo.name;
+            document.getElementById("val_file_type").innerHTML = fileInfo.name.split('.').pop();
+            document.getElementById("val_file_mime").innerHTML = fileInfo.type;
+            document.getElementById("val_file_size").innerHTML = fileInfo.size;
+            document.getElementById("val_file_last_modified").innerHTML = fileInfo.lastModifiedDate;
+        }
+
+        function setElementVisibility(element, visibility) {
+
+            if (visibility) {
+                element.style.visibility = "visible";
+            } else {
+                element.style.visibility = "hidden";
+            }
+        }
+
+        function queryFile(teStruct)
+        {
+            console.log("queryFile ", teStruct);
+
+            var jsonRequest = {
+                request: [{
+                    protocol_version: "1.1",
+                    request_name: "QueryFile",
+                    api_key: api_key,
+                    sha1: teStruct.sha1,
+                    md5: teStruct.md5,
+                    file_name: teStruct.file_name,
+                    file_type: teStruct.file_type,
+                    features: ["te"],
+                    te: {
+                        "reports": ["pdf", "xml"],
+                        "version_info": "true"
+                    }
+                }]
+            };
+            console.log("queryFile JSON ", jsonRequest);
+
+            var qReq = new XMLHttpRequest
+           
+
+            // once done
+            qReq.onload = function () {
+                console.log("file query status: ", qReq.status);
+                if (qReq.status === 200) {
+                    console.log(qReq.responseText);
+                    updateOutput("Server response for QueryFile:\n"+f1.responseText);
+                    handleAPIResponse(qReq.responseText);
+                } else {
+                    console.log("Error file query request with code ", qReq.status, qReq.statusText);
+                    updateOutput("Error quering file");
+                }
+            }
+            try {
+                console.log("queryFile request", jsonRequest);
+                k = JSON.stringify(jsonRequest),
+                //d = k.length,
+                server_url = "/UserCheck/TPAPI",
+                qReq.open("POST", server_url, !0),
+                qReq.setRequestHeader("Authorization", api_key),
+                qReq.timeout = 3E5,
+                qReq.send(k)
+            } catch (q) {
+                console.log("Error quering file ", q);
+            }
+        }
+
+        function handleAPIResponse(resp)
+        {
+            try {
+                apiResponse = JSON.parse(resp);
+                console.log(apiResponse);
+                setStatusTable(apiResponse.response[0].te.status);
+
+
+                // verdict 1001 FOUND
+                if (apiResponse.response[0].te.status.code === 1001) {
+                    console.log("FOUND");
+
+                    stopProgressIndicator();
+                    setVerdictTable(apiResponse.response[0].te.te);
+                    setElementVisibility(document.getElementById("more_link"), true);
+
+                    if (apiResponse.response[0].te.te.combined_verdict === "Malicious") {
+                        if (apiResponse.response[0].te.te.images) {
+                            setReportsTable(apiResponse.response[0].te.te.images);
+                        }
+                    }
+
+                    console.log(apiResponse.response[0].te.status.code);
+                    console.log(apiResponse.response[0].te.status.label);
+                    console.log(apiResponse.response[0].te.status.message);
+                    console.log(apiResponse.response[0].te.te.combined_verdict);
+                } else if (apiResponse.response[0].te.status.code === 1004) {
+                    stopProgressIndicator();
+                    setStatusTable({code: "N/A", label: "N/A", message: "Error processing file. Unexpected code 1004"});
+                    //setVerdictTable(apiResponse.response[0].te.te);
+                    setElementVisibility(document.getElementById("more_link"), true);
+                } else {
+                    // 1003 PENDING, 1002 UPLOAD_SUCCESS, 1006 PARTIALLY_FOUND
+                    if ((apiResponse.response[0].te.status.code == 1003) || (apiResponse.response[0].te.status.code == 1002) || (apiResponse.response[0].te.status.code == 1006)) {
+                        window.sb_queryFileCheck = setTimeout(function(){
+                            console.log("Checking status of "+ apiResponse.response[0].te.sha1);
+                            queryFile(apiResponse.response[0].te);
+                        }, 30000);
+                    } else {
+
+
+                        console.log("Error parsing server response; Status code " + apiResponse.response[0].te.status);
+                        console.log(apiResponse.response[0]);
+                    }
+                }
+            } catch (e) {
+                console.log("Error parsing API response: ", e);
+            }
+        }
+
+        function uploadFile(finfo, fcontent) {
+            console.log("uploadFile ", finfo);
+
+            // build JSON request for /UserCheck/TPAPI interface
+            var jsonRequest = {
+                request: [{
+                    protocol_version: "1.1",
+                    request_name: "UploadFile",
+                    api_key: api_key,
+                    sender: "api test",
+                    file_orig_name: finfo.name,
+                    file_enc_data: fcontent,
+		    te_options: {
+			file_name: finfo.name,
+			is_base64: true,
+			features: ["te"],
+			te: {
+				version_info : true
+			}
+		    }
+                }]
+            };
+            // build and execute request
+            var f = new XMLHttpRequest;
+            req_string = JSON.stringify(jsonRequest);
+            console.log("JSON:", req_string);
+            // once done
+            f.onload = function () {
+                console.log("file upload status: ", f.status);
+                if (f.status === 200) {
+                    console.log(f.responseText);
+                    handleAPIResponse(f.responseText);
+                    //updateOutput("Server response:\n"+f.responseText);
+                    //checkResponse(f.responseText);
+                } else {
+                    console.log("File upload failed");
+                    //updateOutput("Error uploading file");
+                }
+            }
+            try {
+                console.log("uploadFile request", jsonRequest);
+                k = JSON.stringify(jsonRequest),
+                //console.log("JSON request", k)
+                d = k.length,
+                // request goes to this script server
+                server_url = "/UserCheck/TPAPI",
+                f.open("POST", server_url, !0),
+                f.setRequestHeader("Authorization", api_key),
+                f.timeout = 3E5,
+                f.send(k)
+            } catch (q) {
+                console.log("Error uploading file ", q);
+                //updateOutput("Error uploading file");
+            }
+
+        }
+
+        function handleFileSelect(evt) {
+            console.log(evt.target);
+
+            // hide upload button
+            setElementVisibility(document.getElementById("files"), false);
+
+            // update status
+            setFileDetailsTable(evt.target.files[0]);
+            setStatusTable({code: "N/A", label: "N/A", message: "Uploading file"});
+
+            startProgressIndicator();
+
+            // one or more files selected
+            var files = evt.target.files;
+
+            // files is a FileList of File objects. List some properties.
+            for (var i = 0, f; f = files[i]; i++) {
+                console.log("Processing file: " + f.name);
+                //updateOutput('Uploading ' + escape(f.name));
+
+                var reader = new FileReader();
+
+                // closure to contain file information
+                reader.onload = (function (theFile) {
+                    return function (e) {
+                        var base64EncodedFileContent = e.target.result.match(/,(.*)$/)[1];
+                        uploadFile(theFile, base64EncodedFileContent);
+                    };
+                })(f);
+
+                // process this file
+                reader.readAsDataURL(f);
+            }
+        }
+
+        // respond to file selection
+        document.getElementById('files').addEventListener('change', handleFileSelect, false);
+    </script>
+</body>
+
+</html>
