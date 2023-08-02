@@ -137,17 +137,11 @@
             var jsonRequest = {
                 request: [{
                     protocol_version: "1.1",
-                    request_name: "QueryFile",
                     api_key: api_key,
+                    request_name: "QueryFile",
                     sha1: teStruct.sha1,
-                    md5: teStruct.md5,
-                    file_name: teStruct.file_name,
-                    file_type: teStruct.file_type,
                     features: ["te"],
-                    te: {
-                        "reports": ["pdf", "xml"],
-                        "version_info": "true"
-                    }
+                    te: {}
                 }]
             };
             console.log("queryFile JSON ", jsonRequest);
@@ -159,12 +153,10 @@
             qReq.onload = function () {
                 console.log("file query status: ", qReq.status);
                 if (qReq.status === 200) {
-                    console.log(qReq.responseText);
-                    updateOutput("Server response for QueryFile:\n"+f1.responseText);
+                    console.log("query response:",qReq.responseText);
                     handleAPIResponse(qReq.responseText);
                 } else {
                     console.log("Error file query request with code ", qReq.status, qReq.statusText);
-                    updateOutput("Error quering file");
                 }
             }
             try {
@@ -246,7 +238,7 @@
 		    te_options: {
 			file_name: finfo.name,
 			is_base64: true,
-			features: ["te"],
+			features: ["te", "te_eb"],
 			te: {
 				version_info : true
 			}
