@@ -40,7 +40,7 @@
     <script>
         console.log("ready.");
         // used as TE API key
-        api_key = "8SD5xJZTfHlEuALbV9fpLB9lJC9zapkH"
+        api_key = "gG9SE4L4hCE2DnLaEAAvtKVqW0tXfs22"
 
         window.tpapi = {
             key: "",
@@ -68,6 +68,7 @@
 
         function reportURL(downloadID)
         {
+            console.log("downloadId:", downloadID);
             return "https://192.168.101.3:18194/tecloud/api/v1/file/download?id=" + downloadID;
         }
 
@@ -75,16 +76,16 @@
         {
             var reportsTable = document.getElementById("reports_table");
             setElementVisibility(reportsTable, true);
-            reportsTable.innerHTML = "<tr><th>image</th><th>decider</th><th>xml report</th><th>full report</th></tr>\n"
+            reportsTable.innerHTML = "<tr><th>image</th><th>xml report</th><th>full report</th></tr>\n"
             for (var i in imagesStruct) {
                 console.log(imagesStruct[i]);
                 console.log(imagesStruct[i].id);
                 console.log(imagesStruct[i].report.xml_report);
-                console.log(imagesStruct[i].report.additional_emulation_data.verdict_decider);
+                //console.log(imagesStruct[i].report.additional_emulation_data.verdict_decider);
                 reportsTable.innerHTML +=
                     "<tr>"
                     +"<td>"+imagesStruct[i].id+"</td>"
-                    +"<td>"+imagesStruct[i].report.additional_emulation_data.verdict_decider+"</td>"
+                    //+"<td>"+imagesStruct[i].report.additional_emulation_data.verdict_decider+"</td>"
                     +"<td><a href=\""+reportURL(imagesStruct[i].report.xml_report)+"\">"+imagesStruct[i].report.xml_report+"</a></td>"
                     +"<td><a href=\""+reportURL(imagesStruct[i].report.full_report)+"\">"+imagesStruct[i].report.full_report+"</a></td>"
                     +"</tr>\n";
@@ -141,7 +142,9 @@
                     request_name: "QueryFile",
                     sha1: teStruct.sha1,
                     features: ["te"],
-                    te: {}
+                    te: {
+                      reports: ["xml", "summary"]
+                    }
                 }]
             };
             console.log("queryFile JSON ", jsonRequest);
@@ -215,7 +218,7 @@
 
 
                         console.log("Error parsing server response; Status code " + apiResponse.response[0].te.status);
-                        console.log(apiResponse.response[0]);
+                        console.log("Response:", apiResponse.response[0]);
                     }
                 }
             } catch (e) {
@@ -240,7 +243,8 @@
 			is_base64: true,
 			features: ["te", "te_eb"],
 			te: {
-				version_info : true
+			  version_info : true,
+                          reports: ["xml", "summary"] 
 			}
 		    }
                 }]
