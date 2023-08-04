@@ -39,8 +39,9 @@
 
     <script>
         console.log("ready.");
-        // used as TE API key
-        api_key = "gG9SE4L4hCE2DnLaEAAvtKVqW0tXfs22"
+        // API_KEY=$(grep api_key /opt/CPUserCheckPortal/phpincs/conf/TPAPI.ini | cut -d" " -f 3)
+        // $API_KEY && sed -ie 's/api_key=\"placeholder\"/api_key=\"'"$API_KEY"'\"/' u8120.html
+	api_key = "placeholder"
 
         window.tpapi = {
             key: "",
