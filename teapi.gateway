@@ -1,0 +1,238 @@
+Access the API
+POST request to the following URL:
+
+https://<GW_IP>/UserCheck/TPAPI
+
+Global Request Headers
+You must include these fields in each request:
+
+api_key : A valid API key from the Security Gateway, located at /opt/CPUserCheckPortal/phpincs/conf/TPAPI.ini
+protocol_version : Current protocol version. ("1.1")
+request_name : "QueryFile", "UploadFile"
+JSON Request and Response Structure
+The request body can be a single JSON object or contain an array of objects, called a request object.
+
+A JSON request has this structure:
+
+{
+	"request": [{
+		"protocol_version": "1.1",
+		"request_name": "<request name>",
+		"api_key": "<API key from the GW>"
+	}]
+}
+  
+Request Object structure:
+
+A request object has JSON fields that are applicable to the request, with metadata about the request.
+The body of the request can also have a detailed section, with data for each feature that can be used.
+If not given, the Threat Prevention service uses the best default values.
+Response Object structure:
+
+The response object has general and feature-specific fields and properties.
+Response status codes (go to Introduction > Response Status Codes)
+QueryFile Request
+Use the Query API to have a client application look for:
+
+The status of a file, uploaded for analysis.
+The analysis report of a specific file on the Check Point Threat Prevention service databases.
+This section is only applicable to Threat Emulation (when te_options field is sent in UploadFile request).
+
+For more details regarding Threat Emulation options refer to Threat Prevention API 1.0.
+
+Example
+Query request
+
+{
+	"request": [{
+		"protocol_version": "1.1",
+		"api_key": "<API_KEY>",
+		"request_name": "QueryFile",
+		"sha1": "c22b5f9178342609428d6f51b2c5af4c0bde6a42",
+		"features": ["te"],
+		"te": {}
+	}]
+}
+
+
+UploadFile Request
+Use the Upload API to send a client application request for Check Point Threat Prevention modules to scan and analyze.
+For enhanced security, HTTPS is used during upload and download (in Threat Extraction) of the file to the service.
+Unless save_original_file_on_server=True is specified in scrub_options (see below), the file is deleted from the server when the scan is completed. 
+The Maximum supported File Size is 15MB. The API does not enforce it, and does not send proper errors if the file size exceeded. Make sure to enforce the file size on the client application. To increase the maximum supported file size above 15MB, refer to "Increase maximum supported file size" section below.
+Upload Request Format
+file_enc_data : Base64 encoded file
+file_orig_name : File name
+You must specify at least one of the fields below:
+
+scrub_options : used for Threat Extraction
+te_options : used for Threat Emulation
+scrub_options
+Required fields:
+scrub_method :
+0 : According to profile
+1 : Extract
+2 : Convert to PDF
+profile_name: Name of the Threat Prevention profile to be used
+this field is mandatory if scrub_method=0
+Optional fields:
+save_original_file_on_server : [True|False]
+Saves the original file. The user accesss it in UserCheck portal
+scrubbed_parts_codes : 
+Parts to be extracted
+Applicable when extract method is used
+sender : Original URL of the file
+  
+Relevant when save_original_file_on_server=True
+real_extension : Suffix of the sent file
+input_real_extension : Resolve file type
+scrub_activity : Free text regarding the extraction activity
+risk : Calculated risk of the file
+protection_name : "Extract potentially malicious content"
+protection_type : The protection method that was use
+"Conversion to PDF" : scrub_method=2
+"Content Removal" : scrub_method=1
+Example 1 : Threat Extraction - Convert to PDF
+
+    {
+	"request": [{
+		"protocol_version": "1.1",
+		"api_key": "<API_KEY>",
+		"request_name": "UploadFile",
+		"file_enc_data": "<base64_encoded_file>",
+		"file_orig_name": "hi.txt",
+		"scrub_options": {
+			"scrub_method": 2
+		}
+	}]
+}
+
+Example 2 : Threat Extraction - According to profile
+Upload request
+
+{
+	"request": [{
+		"protocol_version": "1.1",
+		"api_key": "<API_KEY>",
+		"request_name": "UploadFile",		
+		"subject": "http://www.bitsavers.org/pdf/3Com/3C400_May82.pdf",
+		"file_orig_name": "3C400_May82.pdf",
+		"file_enc_data": "<base64_encoded_file>",
+		"te_options": {
+			"file_name": "3C400_May82.pdf",
+			"file_type": "pdf",
+			"url": "http://www.bitsavers.org/pdf/3Com/3C400_May82.pdf",
+			"is_base64": true,
+			"features": ["te"],
+			"te": {
+				"version_info" : true
+			}
+		}
+	}]
+}
+ 
+{
+    "request" : [
+         {
+              "features" : [ "te" ],
+              "sha1" : "...",
+              "te" : {
+                  "version_info" : true,
+                  "reports" : [ ... ]
+              }
+         }
+    ]
+}
+
+# NAME 4 usrcheck
+# api_key to avoid 500
+
+
+{"response":[{"protocol_version":"1.1","src_ip":"10.128.0.8","te":{"features":["te"],"file_type":"zip","md5":"7bf7d39a15540a1504f258d15e3257e2","sha1":"92deede9144a8d9714686d86474d1c3eae727ae4","sha256":"5ea78e075b613b3a4d5f0dfde23262987a8263bd0f3f088647209c8493c62d37","status":{"code":1001,"label":"FOUND","message":"We have found your request"},"te":{"blob":{"embedded_data":{"classified_as_zip":true,"contains_embedded_files":true,"contains_macro_and_code":true,"contains_sensitive_links":true,"embedded_file_types":[],"is_file_encrypted":true,"scrubbed_content":[]}},"combined_verdict":"Malicious","confidence":3,"images":[{"id":"5e5de275-a103-4f67-b55b-47532918fa59","report":{"full_report":"4E3696F5-44E5-C542-8D6C-2F60850A7BF7","verdict":"Malicious","xml_report":"373F77DA-32EE-8146-AE4C-746CC48BA58A"},"revision":1,"status":"found"},{"id":"e50e99f3-5963-4573-af9e-e3f4750b55e2","report":{"full_report":"C36FCE36-4421-934F-962D-E6CB6FCF6F02","verdict":"Malicious","xml_report":"8B515344-EF3B-3E4D-B3E2-7D2E17F823A6"},"revision":1,"status":"found"}],"score":-2147483648,"severity":4,"status":{"code":1001,"label":"FOUND","message":"We have found your request"}}}}]}
+
+{
+   "response":[
+      {
+         "protocol_version":"1.1",
+         "src_ip":"10.128.0.8",
+         "te":{
+            "features":[
+               "te"
+            ],
+            "file_type":"zip",
+            "md5":"7bf7d39a15540a1504f258d15e3257e2",
+            "sha1":"92deede9144a8d9714686d86474d1c3eae727ae4",
+            "sha256":"5ea78e075b613b3a4d5f0dfde23262987a8263bd0f3f088647209c8493c62d37",
+            "status":{
+               "code":1001,
+               "label":"FOUND",
+               "message":"We have found your request"
+            },
+            "te":{
+               "blob":{
+                  "embedded_data":{
+                     "classified_as_zip":true,
+                     "contains_embedded_files":true,
+                     "contains_macro_and_code":true,
+                     "contains_sensitive_links":true,
+                     "embedded_file_types":[
+                        
+                     ],
+                     "is_file_encrypted":true,
+                     "scrubbed_content":[
+                        
+                     ]
+                  }
+               },
+               "combined_verdict":"Malicious",
+               "confidence":3,
+               "images":[
+                  {
+                     "id":"5e5de275-a103-4f67-b55b-47532918fa59",
+                     "report":{
+                        "full_report":"4E3696F5-44E5-C542-8D6C-2F60850A7BF7",
+                        "verdict":"Malicious",
+                        "xml_report":"373F77DA-32EE-8146-AE4C-746CC48BA58A"
+                     },
+                     "revision":1,
+                     "status":"found"
+                  },
+                  {
+                     "id":"e50e99f3-5963-4573-af9e-e3f4750b55e2",
+                     "report":{
+                        "full_report":"C36FCE36-4421-934F-962D-E6CB6FCF6F02",
+                        "verdict":"Malicious",
+                        "xml_report":"8B515344-EF3B-3E4D-B3E2-7D2E17F823A6"
+                     },
+                     "revision":1,
+                     "status":"found"
+                  }
+               ],
+               "score":-2147483648,
+               "severity":4,
+               "status":{
+                  "code":1001,
+                  "label":"FOUND",
+                  "message":"We have found your request"
+               }
+            }
+         }
+      }
+   ]
+}
+
+
+ Threat Emulation (when te_options field is sent in UploadFile request).
+ 
+Generate a pfx certificate (pkcs#12) without an export password and upload it to the Gateway.
+Enable the feature by running: 'tecli adv server_cert set enable 1'
+Set the new certificate path by running: 'tecli adv server_cert set path <certificate path>'
+Restart the TED process by running: 'fw kill ted'
+
+Sign {
+LICENSE 10.128.0.6 never CPSG-C-4-U CPSB-FW CPSB-VPN CPSB-IA CPSB-SSLVPN-5 CPSB-ADNC CPSB-IPS CPSB-URLF CPSB-APCL CPSB-AV CPSB-ABOT-M CPSB-ASPM CPSB-CTNT CK-F13D84886676
+}= uePbNsEWpkRJRzVu5cpY9fH4kB2PAxWh3kf Index=3 Version=0
+
+Sign {
+LICENSE 10.128.0.4 never CPSM-C-5 CPSM-NGSM CPSB-WKFL-5 CPSB-NPM CPSB-EPM CPSB-LOGS CPSB-MNTR CPSB-MPTL CPSB-UDIR CPSB-PRVS CPSB-COMP-5 CPSB-SME-5 CPSB-RPRT-N-C1000 CK-79CEB8AA8EF6
+}= GUkGFzeVaBMZsBFfHGAiM9YfM8k6ZikNuhs Index=0 Version=0 
